@@ -11,7 +11,6 @@ const parser = require('body-parser');
 const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
-const game_controller_1 = require("./controllers/game.controller");
 const io = new Server(server, {
     cors: {
         origin: "http://localhost:3000"
@@ -23,9 +22,19 @@ app.use(parser.urlencoded({ extended: false }));
 app.use(parser.json());
 app.get('/', (_, res) => res.json('Welcome to tictactoe API'));
 io.on('connection', (socket) => {
-    socket.on('join_game', (data) => (0, game_controller_1.gameLoaded)(Object.assign(Object.assign({}, data), { socket })));
-    socket.on('disconnect', () => {
-        console.log('Player disconnected');
+    console.log(`User connected with ID: ${socket.id}`);
+    socket.on('join', ({ username, room }) => {
+        socket.join(room);
+        socket.on('move', (data) => {
+            socket.to(room).emit('move', data);
+        });
+        socket.on('change_player', (data) => {
+            socket.to(room).emit('change_player', data);
+        });
+        socket.on('draw', (data) => {
+            socket.to(room).emit('draw', data);
+        });
+        console.log(`Player ${username} has joined the room ${room}`);
     });
 });
 server.listen(process.env.PORT, () => {
