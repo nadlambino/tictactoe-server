@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server, {
     cors: {
-        origin: process.env.APP_URL
+        origins: [process.env.APP_URL]
     },
 });
 app.use(cors());

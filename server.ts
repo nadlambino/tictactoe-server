@@ -9,7 +9,7 @@ const { Server } = require("socket.io");
 import { Socket } from 'socket.io';
 const io = new Server(server, {
   cors: {
-    origin: process.env.APP_URL
+    origins: [process.env.APP_URL]
   },
 });
 
