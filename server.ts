@@ -25,15 +25,23 @@ io.on('connection', (socket: Socket) => {
 
   socket.on('join', ({username, room}) => {
     socket.join(room)
+    
     socket.on('move', (data) => {
       socket.to(room).emit('move', data)
     })
+    
     socket.on('change_player', (data) => {
       socket.to(room).emit('change_player', data)
     })
+
     socket.on('draw', (data) => {
       socket.to(room).emit('draw', data)
     })
+
+    socket.on('reset', () => {
+      socket.to(room).emit('reset')
+    })
+
     console.log(`Player ${username} has joined the room ${room}`)
   })
 });

@@ -34,6 +34,9 @@ io.on('connection', (socket) => {
         socket.on('draw', (data) => {
             socket.to(room).emit('draw', data);
         });
+        socket.on('reset', () => {
+            socket.to(room).emit('reset');
+        });
         console.log(`Player ${username} has joined the room ${room}`);
     });
 });
