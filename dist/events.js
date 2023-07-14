@@ -1,11 +1,35 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.playerDisconnected = exports.playerJoined = exports.removeEmptyRoom = void 0;
-const removeEmptyRoom = (rooms) => {
-    return rooms.filter(r => r.users.length > 0);
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
 };
-exports.removeEmptyRoom = removeEmptyRoom;
-const playerJoined = (socket, username, room, rooms) => {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.onConnect = void 0;
+let rooms = [];
+const onConnect = (io) => {
+    io.on('connection', (socket) => {
+        console.log(`User connected with ID: ${socket.id}`);
+        removeEmptyRoom();
+        socket.on('join', ({ username, room }) => {
+            playerJoined(socket, username, room);
+            socket.on('move', (data) => socket.to(room).emit('move', data));
+            socket.on('change_player', (data) => socket.to(room).emit('change_player', data));
+            socket.on('draw', (data) => socket.to(room).emit('draw', data));
+            socket.on('reset', () => socket.to(room).emit('reset'));
+            playerDisconnected(socket, room);
+        });
+    });
+};
+exports.onConnect = onConnect;
+const removeEmptyRoom = () => {
+    rooms = rooms.filter(r => r.users.length > 0);
+};
+const playerJoined = (socket, username, room) => __awaiter(void 0, void 0, void 0, function* () {
     const r = rooms.find(r => r.room_id === room);
     let hasJoined = false;
     let users = [];
@@ -23,8 +47,9 @@ const playerJoined = (socket, username, room, rooms) => {
         hasJoined = false;
     }
     if (hasJoined) {
-        socket.join(room);
-        socket.emit('joined', true);
+        yield socket.join(room);
+        console.log(room);
+        socket.emit('joined', true, username);
         const roomIndex = rooms.findIndex(r => r.room_id === room);
         if (roomIndex > -1) {
             rooms[roomIndex] = {
@@ -42,16 +67,14 @@ const playerJoined = (socket, username, room, rooms) => {
     else {
         socket.emit('joined', false);
     }
-    return rooms;
-};
-exports.playerJoined = playerJoined;
-const playerDisconnected = (socket, room, rooms) => {
+});
+const playerDisconnected = (socket, room) => {
     socket.on('disconnect', () => {
         var _a;
         const userRoom = rooms.find(r => r.users.find(u => u.id === socket.id));
         const disconnnectedUser = userRoom === null || userRoom === void 0 ? void 0 : userRoom.users.find(u => u.id === socket.id);
         if (userRoom && (userRoom === null || userRoom === void 0 ? void 0 : userRoom.users.length) <= 1) {
-            rooms = rooms.filter(r => r.room_id === (userRoom === null || userRoom === void 0 ? void 0 : userRoom.room_id));
+            rooms = rooms.filter(r => r.room_id !== (userRoom === null || userRoom === void 0 ? void 0 : userRoom.room_id));
         }
         else {
             const index = rooms.findIndex(r => r.users.find(u => u.id === socket.id));
@@ -61,8 +84,5 @@ const playerDisconnected = (socket, room, rooms) => {
             }
             socket.to(room).emit('player_disconnected', disconnnectedUser === null || disconnnectedUser === void 0 ? void 0 : disconnnectedUser.username);
         }
-        return rooms;
     });
-    return rooms;
 };
-exports.playerDisconnected = playerDisconnected;

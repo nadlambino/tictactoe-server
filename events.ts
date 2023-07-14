@@ -1,20 +1,38 @@
 import { Socket } from "socket.io"
 
+let rooms : Room[] = [];
+
 export interface User {
-    id: String,
-    username: String
+    id: string,
+    username: string
 }
 
 export interface Room {
-    room_id: String,
+    room_id: string,
     users: User[]
 }
 
-export const removeEmptyRoom = (rooms: Room[]) => {
-    return rooms.filter(r => r.users.length > 0)
+export const onConnect = (io: any) => {
+    io.on('connection', (socket: Socket) => {
+        console.log(`User connected with ID: ${socket.id}`)
+        removeEmptyRoom()
+
+        socket.on('join', ({ username, room }) => {
+            playerJoined(socket, username, room)
+            socket.on('move', (data) => socket.to(room).emit('move', data))
+            socket.on('change_player', (data) => socket.to(room).emit('change_player', data))
+            socket.on('draw', (data) => socket.to(room).emit('draw', data))
+            socket.on('reset', () => socket.to(room).emit('reset'))
+            playerDisconnected(socket, room)
+        })
+    });
 }
 
-export const playerJoined = (socket: Socket, username: String, room: string, rooms: Room[]) : Room[] => {
+const removeEmptyRoom = () => {
+    rooms = rooms.filter(r => r.users.length > 0)
+}
+
+const playerJoined = async (socket: Socket, username: string, room: string) => {
     const r = rooms.find(r => r.room_id === room)
     let hasJoined = false;
     let users : User[] = [];
@@ -32,8 +50,9 @@ export const playerJoined = (socket: Socket, username: String, room: string, roo
     }
 
     if (hasJoined) {
-        socket.join(room)
-        socket.emit('joined', true)
+        await socket.join(room)
+        console.log(room)
+        socket.emit('joined', true, username)
         const roomIndex = rooms.findIndex(r => r.room_id === room)
         
         if (roomIndex > -1) {
@@ -50,17 +69,15 @@ export const playerJoined = (socket: Socket, username: String, room: string, roo
     } else {
         socket.emit('joined', false)
     }
-
-    return rooms;
 }
 
-export const playerDisconnected = (socket: Socket, room: string, rooms: Room[]) : Room[] => {
+const playerDisconnected = (socket: Socket, room: string) => {
     socket.on('disconnect', () => {
         const userRoom = rooms.find(r => r.users.find(u => u.id === socket.id))
         const disconnnectedUser = userRoom?.users.find(u => u.id === socket.id)
     
         if (userRoom && userRoom?.users.length <= 1) {
-            rooms = rooms.filter(r => r.room_id === userRoom?.room_id)
+            rooms = rooms.filter(r => r.room_id !== userRoom?.room_id)
         } else {
             const index = rooms.findIndex(r => r.users.find(u => u.id === socket.id))
     
@@ -75,9 +92,5 @@ export const playerDisconnected = (socket: Socket, room: string, rooms: Room[]) 
     
             socket.to(room).emit('player_disconnected', disconnnectedUser?.username)
         }
-
-        return rooms;
     })
-
-    return rooms;
 }
