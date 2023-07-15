@@ -15,14 +15,14 @@ const onConnect = (io) => {
     io.on('connection', (socket) => {
         console.log(`User connected with ID: ${socket.id}`);
         removeEmptyRoom();
-        socket.on('join', ({ username, room }) => {
-            playerJoined(socket, username, room);
+        socket.on('join', ({ username, room }) => __awaiter(void 0, void 0, void 0, function* () {
+            yield playerJoined(socket, username, room);
             socket.on('move', (data) => socket.to(room).emit('move', data));
             socket.on('change_player', (data) => socket.to(room).emit('change_player', data));
             socket.on('draw', (data) => socket.to(room).emit('draw', data));
             socket.on('reset', () => socket.to(room).emit('reset'));
             playerDisconnected(socket, room);
-        });
+        }));
     });
 };
 exports.onConnect = onConnect;
@@ -48,7 +48,6 @@ const playerJoined = (socket, username, room) => __awaiter(void 0, void 0, void 
     }
     if (hasJoined) {
         yield socket.join(room);
-        console.log(room);
         socket.emit('joined', true, username);
         const roomIndex = rooms.findIndex(r => r.room_id === room);
         if (roomIndex > -1) {

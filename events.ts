@@ -17,8 +17,8 @@ export const onConnect = (io: any) => {
         console.log(`User connected with ID: ${socket.id}`)
         removeEmptyRoom()
 
-        socket.on('join', ({ username, room }) => {
-            playerJoined(socket, username, room)
+        socket.on('join', async ({ username, room }) => {
+            await playerJoined(socket, username, room)
             socket.on('move', (data) => socket.to(room).emit('move', data))
             socket.on('change_player', (data) => socket.to(room).emit('change_player', data))
             socket.on('draw', (data) => socket.to(room).emit('draw', data))
@@ -51,7 +51,6 @@ const playerJoined = async (socket: Socket, username: string, room: string) => {
 
     if (hasJoined) {
         await socket.join(room)
-        console.log(room)
         socket.emit('joined', true, username)
         const roomIndex = rooms.findIndex(r => r.room_id === room)
         
